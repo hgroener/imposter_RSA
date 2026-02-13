@@ -5,34 +5,46 @@ from sklearn.metrics.pairwise import cosine_similarity
 import wordfreq
 import random as rd
 import json 
+from os import path 
 
 nlp = spacy.load('de_core_news_sm')
 
 
 class GameState:
-    def __init__(self): 
+    def __init__(self, sim_file="/home/user/Documents/Sprachgebrauchsmodellierung_RSA/Hausarbeit_RSA/repo/output/sims.npy"): 
         self.V = self.get_wlist()[:10]
+        #print("V: ", self.V)
         self.TARGET = rd.choice(self.V)
-
+        print(f"randomly chosen target word: {self.TARGET}")
         self.FREQ = {w: wordfreq.word_frequency(w, "de") for w in self.V}
         self.PLAYERS = ["P1", "P2", "P3"]
         self.ROLES = {"P1": "agent", "P2": "agent", "P3": "imposter"}
-        self.TARGET = rd.sample(self.V, 1)[0]
         self.RATIONALITY = {"P1": 3, "P2": 3, "P3": 5}
-        self.SIMS = self.get_sim_table(self.V, self.TARGET)
+        if sim_file and path.isfile(sim_file):
+            self.SIMS = np.load(sim_file)
+            print(f"similarity table loaded from {sim_file}")
+        else:
+            self.SIMS = self.get_sim_table(self.V, self.TARGET)
         self.W = []
         for p in self.PLAYERS:
             for w in self.V:
                 self.W.append((p,w))
 
 
-    def get_wlist(self, pos="NOUN", n=100, from_n = 10000, savepath="../output/random_nouns.json"):
-        frequent_words = nlp(" ".join(wordfreq.top_n_list("de", from_n)))
-        frequent_nouns = [w.lemma_ for w in frequent_words if (w.pos_==pos and w.lemma_[0].isupper())]
-        rd_n = rd.sample(frequent_nouns, n)
-        if savepath:
-            with open(savepath, "w") as final:
-                json.dump(rd_n, final)
+    def get_wlist(self, pos="NOUN", n=100, from_n = 10000, savepath="/home/user/Documents/Sprachgebrauchsmodellierung_RSA/Hausarbeit_RSA/repo/output/random_nouns.json"):
+        if savepath and path.isfile(savepath): 
+            with open(savepath) as f:
+                rd_n = json.load(f)
+                print(f"Vocabulary loaded from {savepath}")
+        else:
+            frequent_words = nlp(" ".join(wordfreq.top_n_list("de", from_n)))
+            frequent_nouns = [w.lemma_ for w in frequent_words if (w.pos_==pos and w.lemma_[0].isupper())]
+            rd_n = rd.sample(frequent_nouns, n)
+            print(f"Vocabulary of size {n} sampled from {from_n} most frequent nouns.")
+            if savepath:
+                with open(savepath, "w") as final:
+                    json.dump(rd_n, final)
+                    print(f"Vocabulary saved to {savepath}")
         return(rd_n)
     
     # Load a large English model with word vectors included
@@ -42,7 +54,7 @@ class GameState:
         t_vec = nlp(t).vector
         return(cosine_similarity([u_vec], [t_vec])[0][0])
 
-    def get_sim_table(self, V, t ): 
+    def get_sim_table(self, V, t, savefile="/home/user/Documents/Sprachgebrauchsmodellierung_RSA/Hausarbeit_RSA/repo/output/sims.npy"): 
         # dim: m x n, so for each of the m target words there are similarities for each of the n words 
         sim_vec = []
         for t in V: 
@@ -52,7 +64,14 @@ class GameState:
                     vec_t.append(0)
                 vec_t.append(self.get_similarity(w,t))
             sim_vec.append(vec_t)
-        return(np.array(sim_vec))
+
+        sim_vec=np.array(sim_vec)
+        print(f"similiarity table of size {len(self.V)}x{len(self.V)} generated")
+        if savefile:
+            np.save(savefile, sim_vec)
+            print(f"similiarity table saved to {savefile}")
+        return(sim_vec)
     
 
 gs = GameState()
+#print(gs.V)
