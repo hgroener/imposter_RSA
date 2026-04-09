@@ -20,6 +20,7 @@ class GameState:
         self.PLAYERS = ["P1", "P2", "P3"]
         self.ROLES = {"P1": "agent", "P2": "agent", "P3": "imposter"}
         self.RATIONALITY = {"P1": 3, "P2": 3, "P3": 5}
+        self.HISTORY = {p: [] for p in self.PLAYERS}
         if sim_file and path.isfile(sim_file):
             self.SIMS = np.load(sim_file)
             print(f"similarity table loaded from {sim_file}")
