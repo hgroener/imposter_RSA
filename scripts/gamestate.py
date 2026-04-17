@@ -5,6 +5,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import wordfreq
 import random as rd
 import json 
+import itertools
 from os import path 
 
 nlp = spacy.load('de_core_news_sm')
@@ -17,7 +18,13 @@ class GameState:
         self.TARGET = rd.choice(self.V)
         print(f"randomly chosen target word: {self.TARGET}")
         self.FREQ = {w: wordfreq.word_frequency(w, "de") for w in self.V}
+        freq_sum = sum(self.FREQ.values())
+        self.FREQ_NORMED = {w: f/freq_sum for w,f in self.FREQ.items()}
         self.PLAYERS = ["P1", "P2", "P3"]
+        play_order = self.PLAYERS.copy()
+        rd.shuffle(play_order)
+        print("randomly chosen play order:", play_order)
+        self.PLAY_ORDER = itertools.cycle(play_order)
         self.ROLES = {"P1": "agent", "P2": "agent", "P3": "imposter"}
         self.RATIONALITY = {"P1": 3, "P2": 3, "P3": 5}
         self.HISTORY = {p: [] for p in self.PLAYERS}
