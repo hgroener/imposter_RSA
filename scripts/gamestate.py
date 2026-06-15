@@ -13,6 +13,7 @@ nlp = spacy.load('de_core_news_sm')
 
 class GameState:
     def __init__(self, sim_file="/home/user/Documents/Sprachgebrauchsmodellierung_RSA/Hausarbeit_RSA/repo/output/sims.npy"): 
+                 #sim_file="/home/user/Documents/Sprachgebrauchsmodellierung_RSA/Hausarbeit_RSA/repo/output/sims.npy"): 
         self.V = self.get_wlist()[:10]
         #print("V: ", self.V)
         self.TARGET = rd.choice(self.V)
