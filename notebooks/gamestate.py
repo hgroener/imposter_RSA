@@ -12,9 +12,9 @@ nlp = spacy.load('de_core_news_sm')
 
 
 class GameState:
-    def __init__(self, sim_file="D:/StandardLibs/documents/Uni/Sprachgebrauchsmodellierung_RSA/Hausarbeit/imposter_RSA/output/sims.npy"): 
+    def __init__(self, sim_file="../output/sims.npy", vsize=10): 
                  #sim_file="/home/user/Documents/Sprachgebrauchsmodellierung_RSA/Hausarbeit_RSA/repo/output/sims.npy"): 
-        self.V = self.get_wlist()[:10]
+        self.V = self.get_wlist(n=vsize)
         #print("V: ", self.V)
         self.TARGET = rd.choice(self.V)
         print(f"randomly chosen target word: {self.TARGET}")
@@ -40,7 +40,7 @@ class GameState:
                 self.W.append((p,w))
 
 
-    def get_wlist(self, pos="NOUN", n=100, from_n = 10000, savepath="D:/StandardLibs/documents/Uni/Sprachgebrauchsmodellierung_RSA/Hausarbeit/imposter_RSA/output/random_nouns.json"):
+    def get_wlist(self, pos="NOUN", n=100, from_n = 1000, savepath="../output/random_nouns.json"):
                   #savepath="/home/user/Documents/Sprachgebrauchsmodellierung_RSA/Hausarbeit_RSA/repo/output/random_nouns.json"):
         if savepath and path.isfile(savepath): 
             with open(savepath) as f:
@@ -64,7 +64,7 @@ class GameState:
         t_vec = nlp(t).vector
         return(cosine_similarity([u_vec], [t_vec])[0][0])
 
-    def get_sim_table(self, V, t, savefile="D:/StandardLibs/documents/Uni/Sprachgebrauchsmodellierung_RSA/Hausarbeit/imposter_RSA/output/sims.npy"):
+    def get_sim_table(self, V, t, savefile="../output/sims.npy"):
                       #savefile="/home/user/Documents/Sprachgebrauchsmodellierung_RSA/Hausarbeit_RSA/repo/output/sims.npy"): 
         # dim: m x n, so for each of the m target words there are similarities for each of the n words 
         sim_vec = []
