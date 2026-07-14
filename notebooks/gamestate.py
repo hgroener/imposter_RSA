@@ -8,7 +8,7 @@ import json
 import itertools
 from os import path 
 
-nlp = spacy.load('de_core_news_sm')
+nlp = spacy.load('de_core_news_md')
 
 
 class GameState:
@@ -60,9 +60,9 @@ class GameState:
     # Load a large English model with word vectors included
     # Access the vector for a specific word
     def get_similarity(self, u, t): 
-        u_vec = nlp(u).vector
-        t_vec = nlp(t).vector
-        return(cosine_similarity([u_vec], [t_vec])[0][0])
+        u = nlp(u)
+        t = nlp(t)
+        return(u.similarity(t))
 
     def get_sim_table(self, V, t, savefile="../output/sims.npy"):
                       #savefile="/home/user/Documents/Sprachgebrauchsmodellierung_RSA/Hausarbeit_RSA/repo/output/sims.npy"): 
@@ -71,16 +71,18 @@ class GameState:
         for t in V: 
             vec_t = []
             for w in V: 
-                if t==w: 
-                    vec_t.append(0)
+                # normalize cosine similarity to get it in range [0,1]
+                #vec_t.append((1 + self.get_similarity(w,t))/2)
                 vec_t.append(self.get_similarity(w,t))
             sim_vec.append(vec_t)
-
         sim_vec=np.array(sim_vec)
-        print(f"similiarity table of size {len(self.V)}x{len(self.V)} generated")
+        sim_vec = sim_vec - sim_vec.min()
+        for n in range(len(V)):
+            sim_vec[n,n] = 0
+        print(f"similarity table of size {len(self.V)}x{len(self.V)} generated")
         if savefile:
             np.save(savefile, sim_vec)
-            print(f"similiarity table saved to {savefile}")
+            print(f"similarity table saved to {savefile}")
         return(sim_vec)
     
 
