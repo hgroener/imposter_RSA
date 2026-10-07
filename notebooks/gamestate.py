@@ -10,30 +10,37 @@ from os import path
 
 nlp = spacy.load('de_core_news_md')
 
-
 class GameState:
-    def __init__(self, sim_file="../output/sims.npy", vsize=10): 
+    def __init__(self, sim_file="../output/sims.npy", vsize=10, dummy=False, dummy_vocab=["Katze", "Pferd", "Stall", "Dinosaurier", "Hund"]
+): 
                  #sim_file="/home/user/Documents/Sprachgebrauchsmodellierung_RSA/Hausarbeit_RSA/repo/output/sims.npy"): 
-        self.V = self.get_wlist(n=vsize)
+        if dummy:
+            self.V = dummy_vocab
+        else:
+            self.V = self.get_wlist(n=vsize)
         #print("V: ", self.V)
         self.TARGET = rd.choice(self.V)
         print(f"randomly chosen target word: {self.TARGET}")
         self.FREQ = {w: wordfreq.word_frequency(w, "de") for w in self.V}
         freq_sum = sum(self.FREQ.values())
-        self.FREQ_NORMED = {w: f/freq_sum for w,f in self.FREQ.items()}
+        if dummy:
+            self.FREQ_NORMED = {w: 0.2 for w in self.V}
+
+        else:
+            self.FREQ_NORMED = {w: f/freq_sum for w,f in self.FREQ.items()}
         self.PLAYERS = ["P1", "P2", "P3"]
         play_order = self.PLAYERS.copy()
         rd.shuffle(play_order)
         print("randomly chosen play order:", play_order)
         self.PLAY_ORDER = itertools.cycle(play_order)
         self.ROLES = {"P1": "agent", "P2": "agent", "P3": "imposter"}
-        self.RATIONALITY = {"P1": 3, "P2": 3, "P3": 5}
+        self.RATIONALITY = {"P1": 3, "P2": 3, "P3": 3}
         self.HISTORY = {p: [] for p in self.PLAYERS}
         if sim_file and path.isfile(sim_file):
             self.SIMS = np.load(sim_file)
             print(f"similarity table loaded from {sim_file}")
         else:
-            self.SIMS = self.get_sim_table(self.V, self.TARGET)
+            self.SIMS = self.get_sim_table(self.V, self.TARGET, savefile=sim_file)
         self.W = []
         for p in self.PLAYERS:
             for w in self.V:
@@ -86,5 +93,5 @@ class GameState:
         return(sim_vec)
     
 
-gs = GameState()
+
 #print(gs.V)
