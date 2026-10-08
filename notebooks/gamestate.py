@@ -11,20 +11,23 @@ from os import path
 nlp = spacy.load('de_core_news_md')
 
 class GameState:
-    def __init__(self, sim_file="../output/sims.npy", vsize=10, dummy=False, dummy_vocab=["Katze", "Pferd", "Stall", "Dinosaurier", "Hund"]
+    def __init__(self, sim_file="../output/sims.npy", vsize=10, dummy=False, dummy_vocab=["Katze", "Pferd", "Stall", "Dinosaurier", "Hund"], target=None
 ): 
-                 #sim_file="/home/user/Documents/Sprachgebrauchsmodellierung_RSA/Hausarbeit_RSA/repo/output/sims.npy"): 
+
         if dummy:
             self.V = dummy_vocab
         else:
             self.V = self.get_wlist(n=vsize)
         #print("V: ", self.V)
-        self.TARGET = rd.choice(self.V)
+        if target: 
+            self.TARGET=target
+        else:
+            self.TARGET = rd.choice(self.V)
         print(f"randomly chosen target word: {self.TARGET}")
         self.FREQ = {w: wordfreq.word_frequency(w, "de") for w in self.V}
         freq_sum = sum(self.FREQ.values())
         if dummy:
-            self.FREQ_NORMED = {w: 0.2 for w in self.V}
+            self.FREQ_NORMED = {w: 1/len(self.V) for w in self.V}
 
         else:
             self.FREQ_NORMED = {w: f/freq_sum for w,f in self.FREQ.items()}
@@ -37,10 +40,11 @@ class GameState:
         self.RATIONALITY = {"P1": 3, "P2": 3, "P3": 3}
         self.HISTORY = {p: [] for p in self.PLAYERS}
         if sim_file and path.isfile(sim_file):
-            self.SIMS = np.load(sim_file)
+            sims = np.load(sim_file)
             print(f"similarity table loaded from {sim_file}")
         else:
-            self.SIMS = self.get_sim_table(self.V, self.TARGET, savefile=sim_file)
+            sims = self.get_sim_table(self.V, self.TARGET, savefile=sim_file)
+        self.SIMS = {p: sims for p in self.PLAYERS}
         self.W = []
         for p in self.PLAYERS:
             for w in self.V:
@@ -48,7 +52,7 @@ class GameState:
 
 
     def get_wlist(self, pos="NOUN", n=100, from_n = 1000, savepath="../output/random_nouns.json"):
-                  #savepath="/home/user/Documents/Sprachgebrauchsmodellierung_RSA/Hausarbeit_RSA/repo/output/random_nouns.json"):
+
         if savepath and path.isfile(savepath): 
             with open(savepath) as f:
                 rd_n = json.load(f)
