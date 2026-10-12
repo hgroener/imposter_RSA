@@ -96,12 +96,12 @@ class GameState:
 
 
 class Speaker_Agent:
-    def __init__(self, player, gamestate, logger=None, i_weight = 0.6): 
+    def __init__(self, player, gamestate, logger=None, i_weight = 0.6, alpha=1): 
         self.player = player
         self.gs = gamestate
         self.logger = logger
         self.role = self.gs.ROLES[player]
-        self.alpha = self.gs.RATIONALITY[player]
+        self.alpha = alpha #self.gs.RATIONALITY[player]
         self.priors = self.get_priors_per_player()
         self.i_weight = i_weight
 
@@ -222,7 +222,8 @@ class Speaker_Agent:
             l0_i = self.L0_t(u,t,listener=i)
             U_i = l0_i
             # U_i is probably weighed to highly like this 
-            U = U_a + self.i_weight * (1-U_i)
+            #U = U_a + self.i_weight * (1-U_i)
+            U = U_a - self.i_weight * 1-U_i
             if self.logger: 
                 self.logger.info(f"outputs of L0 functions within utility function: L0(t|u): {l0_i}, L0(i|u): {l0_a}")
                 self.logger.info(f"imposter component of utility function: {U_i}\nagent component of utility function: {U_a}")
@@ -233,14 +234,14 @@ class Speaker_Agent:
 
         return(U)
     
-    def S1_i_t(self, u, i, t, alpha=1, speaker="P1",  adversarial=True):
+    def S1_i_t(self, u, i, t, speaker="P1",  adversarial=True):
         # gets other player that is not imposter
         partner = [p for p in self.gs.PLAYERS if not p in [speaker,i]][0]
         #P_u = np.exp(alpha*self.utility(u,i,t, partner=partner, speaker=speaker, log=True, i_weight=i_weight))
         #P_u = np.exp(alpha*self.utility(u,i,t, speaker=speaker, log=True, i_weight=i_weight, adversarial=adversarial))
-        P_u = alpha*self.utility(u,i,t, speaker=speaker, adversarial=adversarial)
+        P_u = np.exp(self.alpha*self.utility(u,i,t, speaker=speaker, adversarial=adversarial))
         #SUM = np.nansum([np.exp(alpha*self.utility(u_n, i, t, speaker=speaker, adversarial=adversarial)) for u_n in gs.V])
-        SUM = np.nansum([alpha*self.utility(u_n, i, t, speaker=speaker, adversarial=adversarial) for u_n in self.gs.V])
+        SUM = np.nansum([np.exp(self.alpha*self.utility(u_n, i, t, speaker=speaker, adversarial=adversarial)) for u_n in self.gs.V])
         if SUM==0:
             P_u = 0
         else:
@@ -248,18 +249,18 @@ class Speaker_Agent:
 
         return(P_u)
     
-    def S1_certain(self, u, t, speaker="P1", alpha=1,adversarial=True): 
+    def S1_certain(self, u, t, speaker="P1",adversarial=True): 
         
-        def get_i_sum(u,t,speaker="P1", alpha=1):
-            P_u = [self.priors[speaker]["agent"]["i"][self.gs.PLAYERS.index(i)] * self.S1_i_t(u,i,t, alpha=alpha, speaker=speaker, adversarial=adversarial) for i in self.gs.PLAYERS if i!=self.player]
+        def get_i_sum(u,t,speaker="P1"):
+            P_u = [self.priors[speaker]["agent"]["i"][self.gs.PLAYERS.index(i)] * self.S1_i_t(u,i,t, speaker=speaker, adversarial=adversarial) for i in self.gs.PLAYERS if i!=self.player]
             if self.logger: 
                 for n, p in enumerate([player for player in self.gs.PLAYERS if player!=self.player]):
                     self.logger.info(f"S1(u|{p},{self.gs.TARGET})={P_u[n]}")
             P_u_sum = np.nansum(P_u)
             return(P_u_sum)
 
-        P_u = get_i_sum(u,t,speaker=speaker, alpha=alpha)
-        SUM = np.nansum([get_i_sum(u_n,t,speaker=speaker, alpha=alpha) for u_n in self.gs.V])
+        P_u = get_i_sum(u,t,speaker=speaker)
+        SUM = np.nansum([get_i_sum(u_n,t,speaker=speaker) for u_n in self.gs.V])
         if SUM == 0: 
             P_u = 0 
         else:
