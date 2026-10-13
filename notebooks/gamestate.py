@@ -40,8 +40,8 @@ class GameState:
             sims = np.load(sim_file)
             print(f"similarity table loaded from {sim_file}")
         else:
-            sims = self.get_sim_table(self.V, self.TARGET, savefile=sim_file)
-        self.SIMS = {p: sims for p in self.PLAYERS}
+            sims = self.get_sim_table(savefile=sim_file)
+        self.SIMS = {p: sims.copy() for p in self.PLAYERS}
         self.W = []
         for p in self.PLAYERS:
             for w in self.V:
@@ -72,20 +72,20 @@ class GameState:
         t = nlp(t)
         return(u.similarity(t))
 
-    def get_sim_table(self, V, t, savefile="../output/sims.npy"):
+    def get_sim_table(self, savefile="../output/sims.npy"):
                       #savefile="/home/user/Documents/Sprachgebrauchsmodellierung_RSA/Hausarbeit_RSA/repo/output/sims.npy"): 
         # dim: m x n, so for each of the m target words there are similarities for each of the n words 
         sim_vec = []
-        for t in V: 
+        for t in self.V: 
             vec_t = []
-            for w in V: 
+            for w in self.V: 
                 # normalize cosine similarity to get it in range [0,1]
                 #vec_t.append((1 + self.get_similarity(w,t))/2)
                 vec_t.append(self.get_similarity(w,t))
             sim_vec.append(vec_t)
         sim_vec=np.array(sim_vec)
         sim_vec = sim_vec - sim_vec.min()
-        for n in range(len(V)):
+        for n in range(len(self.V)):
             sim_vec[n,n] = 0
         print(f"similarity table of size {len(self.V)}x{len(self.V)} generated")
         if savefile:
@@ -96,14 +96,14 @@ class GameState:
 
 
 class Speaker_Agent:
-    def __init__(self, player, gamestate, logger=None, i_weight = 0.6, alpha=1): 
+    def __init__(self, player, gamestate, logger=None, i_weight = 2, t_weight=5, alpha=1): 
         self.player = player
         self.gs = gamestate
         self.logger = logger
-        self.role = self.gs.ROLES[player]
-        self.alpha = alpha #self.gs.RATIONALITY[player]
+        self.alpha = alpha 
         self.priors = self.get_priors_per_player()
         self.i_weight = i_weight
+        self.t_weight = t_weight
 
     def get_priors_per_player(self): 
         priors = {p: {} for p in self.gs.PLAYERS}
@@ -181,7 +181,7 @@ class Speaker_Agent:
         #logger.info(f"P(u|w) in L(0): {self.get_P_u_w(u,(imp,t),t_imp) }, priors: {priors_l[imp][t]}")
         P_w_u = self.get_P_u_w(u,(imp,t), speaker=speaker, listener=listener) * priors_l["agent"]["i"][imp]
         #logger.info(f"P(w|u) in L(0): {P_w_u}")
-        SUM = np.nansum([self.get_P_u_w(u,(i_n, t), speaker=speaker) * priors_l["agent"]["i"][i_n] for i_n in range(len(self.gs.PLAYERS))])
+        SUM = np.nansum([self.get_P_u_w(u,(i_n, t), speaker=speaker, listener=listener) * priors_l["agent"]["i"][i_n] for i_n in range(len(self.gs.PLAYERS))])
         #logger.info(f"SUM in L0: {SUM}")
         if SUM==0:
             P_w_u = 0
@@ -223,7 +223,7 @@ class Speaker_Agent:
             U_i = l0_i
             # U_i is probably weighed to highly like this 
             #U = U_a + self.i_weight * (1-U_i)
-            U = U_a - self.i_weight * 1-U_i
+            U = self.i_weight * U_a - self.t_weight * U_i
             if self.logger: 
                 self.logger.info(f"outputs of L0 functions within utility function: L0(t|u): {l0_i}, L0(i|u): {l0_a}")
                 self.logger.info(f"imposter component of utility function: {U_i}\nagent component of utility function: {U_a}")
@@ -234,9 +234,8 @@ class Speaker_Agent:
 
         return(U)
     
-    def S1_i_t(self, u, i, t, speaker="P1",  adversarial=True):
+    def S1_i_t(self, u, i, t, speaker="P1", adversarial=True):
         # gets other player that is not imposter
-        partner = [p for p in self.gs.PLAYERS if not p in [speaker,i]][0]
         #P_u = np.exp(alpha*self.utility(u,i,t, partner=partner, speaker=speaker, log=True, i_weight=i_weight))
         #P_u = np.exp(alpha*self.utility(u,i,t, speaker=speaker, log=True, i_weight=i_weight, adversarial=adversarial))
         P_u = np.exp(self.alpha*self.utility(u,i,t, speaker=speaker, adversarial=adversarial))
